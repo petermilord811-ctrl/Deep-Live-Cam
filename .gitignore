@@ -27,8 +27,9 @@ models/DMDNet.pth
 faceswap/
 .vscode/
 
-./GFPGANv1.4.pth
-./inswapper_128_fp16.onnx
+/GFPGANv1.4.pth
+*.pth
+/inswapper_128_fp16.onnx
 
 # PyInstaller standalone build output (multi-GB, machine-specific)
 /dist/
