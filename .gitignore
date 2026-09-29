@@ -13,6 +13,8 @@ tf_env/
 
 .tmp/
 temp/
+.models/
+models/
 .venv/
 venv/
 env/
@@ -25,9 +27,13 @@ models/DMDNet.pth
 faceswap/
 .vscode/
 
+./GFPGANv1.4.pth
+./inswapper_128_fp16.onnx
+
 # PyInstaller standalone build output (multi-GB, machine-specific)
 /dist/
 /build/
+/models/
 *.manifest
 switch_states.json
 /models
