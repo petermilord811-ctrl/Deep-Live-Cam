@@ -75,6 +75,7 @@ from modules.utilities import (
 )
 from modules import imread_unicode
 from modules.video_capture import VideoCapturer
+from modules.virtual_camera import VirtualCameraOutput
 
 if platform.system() == "Windows":
     from pygrabber.dshow_graph import FilterGraph
@@ -91,6 +92,17 @@ PREVIEW_MAX_HEIGHT = 700
 PREVIEW_MAX_WIDTH = 1200
 PREVIEW_DEFAULT_WIDTH = 640
 PREVIEW_DEFAULT_HEIGHT = 360
+
+# Live webcam capture resolution — independent of the preview window size.
+# The swap/enhance models run on fixed-size face crops (128² / 512²), so raising
+# this improves source detail and output sharpness without multiplying GPU
+# inference cost. Drop to 1280×720 if the processing framerate is too low.
+WEBCAM_CAPTURE_WIDTH = 1920
+WEBCAM_CAPTURE_HEIGHT = 1080
+
+# Initial size of the (resizable) Live Preview window — 16:9 to match capture.
+WEBCAM_WINDOW_DEFAULT_WIDTH = 1280
+WEBCAM_WINDOW_DEFAULT_HEIGHT = 720
 
 POPUP_WIDTH = 750
 POPUP_HEIGHT = 810
@@ -311,6 +323,7 @@ def save_switch_states():
         "live_resizable": modules.globals.live_resizable,
         "fp_ui": modules.globals.fp_ui,
         "show_fps": modules.globals.show_fps,
+        "virtual_cam_enabled": modules.globals.virtual_cam_enabled,
         "mouth_mask": modules.globals.mouth_mask,
         "show_mouth_mask_box": modules.globals.show_mouth_mask_box,
         "mouth_mask_size": modules.globals.mouth_mask_size,
@@ -338,6 +351,7 @@ def load_switch_states():
         modules.globals.live_resizable = state.get("live_resizable", False)
         modules.globals.fp_ui = state.get("fp_ui", {"face_enhancer": False})
         modules.globals.show_fps = state.get("show_fps", False)
+        modules.globals.virtual_cam_enabled = state.get("virtual_cam_enabled", False)
         # Mouth mask always starts disabled (slider at 0) on launch,
         # regardless of the persisted value — enable it explicitly each session.
         modules.globals.mouth_mask_size = 0.0
@@ -594,6 +608,9 @@ class MainWindow(QMainWindow):
                                  "Fix blue/green color cast from some webcams")
         self.sw_show_fps = make("show_fps", "Show FPS",
                                 "Display frames-per-second counter on the live preview")
+        self.sw_virtual_cam = make("virtual_cam_enabled", "Virtual Camera",
+                                   "Stream the live swapped video to a virtual webcam — "
+                                   "select 'OBS Virtual Camera' as your camera in Meet/Zoom/Teams")
 
         # Map faces is special — closes mapper when toggled off.
         self.sw_map_faces = _Switch(_("Map faces"), modules.globals.map_faces,
@@ -606,13 +623,16 @@ class MainWindow(QMainWindow):
             self.sw_keep_frames, self.sw_many_faces,
             self.sw_map_faces, self.sw_show_fps,
             self.sw_poisson, self.sw_color_fix,
+            self.sw_virtual_cam,
         ]
         for i, w in enumerate(items):
             grid.addWidget(w, i // 2, i % 2)
 
-        # Face enhancer dropdown
+        # Face enhancer dropdown — placed on the first free row below the
+        # switch grid (ceil(N/2) rows used by N switches in 2 columns).
+        enhancer_row = (len(items) + 1) // 2
         enhancer_label = QLabel(_("Face Enhancer:"))
-        grid.addWidget(enhancer_label, len(items) // 2, 0)
+        grid.addWidget(enhancer_label, enhancer_row, 0)
 
         self.cb_enhancer = QComboBox()
         self.cb_enhancer.addItems(["None", "GFPGAN", "GPEN-512", "GPEN-256"])
@@ -626,7 +646,7 @@ class MainWindow(QMainWindow):
         self.cb_enhancer.setCurrentText(initial)
         self.cb_enhancer.currentTextChanged.connect(self._on_enhancer_change)
         self.cb_enhancer.setToolTip(_("Select a face enhancement model (None = no enhancement)"))
-        grid.addWidget(self.cb_enhancer, len(items) // 2, 1)
+        grid.addWidget(self.cb_enhancer, enhancer_row, 1)
 
         return card
 
@@ -1056,6 +1076,14 @@ class _ProcessingWorker(QThread):
         cached_many_faces = None
         det_interval = max(1, round(self._fps * 0.08))
 
+        # Virtual camera sink — streams finished frames out as a selectable
+        # webcam (Meet/Zoom/Teams/OBS). Created here so every pyvirtualcam
+        # call stays on this single worker thread.
+        vcam = VirtualCameraOutput(fps=self._fps)
+        prev_vcam_enabled = False
+        vcam_announced = False
+        vcam_error_announced = False
+
         while not self._stop.is_set():
             try:
                 frame = self._cq.get(timeout=0.05)
@@ -1170,12 +1198,43 @@ class _ProcessingWorker(QThread):
                 except queue.Full:
                     pass
 
+            # Mirror the finished frame out to the virtual camera. Done after
+            # the preview push so the on-screen preview stays responsive.
+            enabled = modules.globals.virtual_cam_enabled
+            if enabled and not prev_vcam_enabled:
+                # Rising edge: clear any latched failure and re-announce.
+                vcam.reset()
+                vcam_announced = False
+                vcam_error_announced = False
+            if enabled:
+                if vcam.send(temp_frame):
+                    if not vcam_announced:
+                        update_status(
+                            f"Streaming to virtual camera ({vcam.device}) — "
+                            "select it in Meet/Zoom/Teams"
+                        )
+                        vcam_announced = True
+                elif not vcam_error_announced:
+                    update_status(
+                        f"Virtual camera unavailable: {vcam.last_error} "
+                        "(install OBS Studio to register a virtual camera)"
+                    )
+                    vcam_error_announced = True
+            elif prev_vcam_enabled:
+                was_active = vcam.is_active()
+                vcam.close()
+                if was_active:
+                    update_status("Virtual camera stopped")
+            prev_vcam_enabled = enabled
+
+        vcam.close()
+
 
 class WebcamPreviewWindow(QWidget):
     def __init__(self, camera_index: int):
         super().__init__()
         self.setWindowTitle("Live Preview")
-        self.resize(PREVIEW_DEFAULT_WIDTH, PREVIEW_DEFAULT_HEIGHT)
+        self.resize(WEBCAM_WINDOW_DEFAULT_WIDTH, WEBCAM_WINDOW_DEFAULT_HEIGHT)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         self._image_label = QLabel()
@@ -1184,7 +1243,7 @@ class WebcamPreviewWindow(QWidget):
         layout.addWidget(self._image_label, 1)
 
         self._cap = VideoCapturer(camera_index)
-        if not self._cap.start(PREVIEW_DEFAULT_WIDTH, PREVIEW_DEFAULT_HEIGHT, 60):
+        if not self._cap.start(WEBCAM_CAPTURE_WIDTH, WEBCAM_CAPTURE_HEIGHT, 60):
             update_status("Failed to start camera")
             QTimer.singleShot(0, self.close)
             return

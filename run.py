@@ -3,17 +3,37 @@
 import os
 import sys
 
-# Add the project root to PATH so bundled ffmpeg/ffprobe are found
-project_root = os.path.dirname(os.path.abspath(__file__))
+# Add the project root to PATH so bundled ffmpeg/ffprobe are found.
+# When frozen (PyInstaller), __file__ points inside the bundle, so anchor to the
+# executable's folder where ffmpeg.exe/ffprobe.exe ship beside the exe.
+if getattr(sys, "frozen", False):
+    project_root = os.path.dirname(os.path.abspath(sys.executable))
+else:
+    project_root = os.path.dirname(os.path.abspath(__file__))
 os.environ["PATH"] = project_root + os.pathsep + os.environ.get("PATH", "")
 
 # On Windows, register NVIDIA CUDA DLL directories so onnxruntime-gpu can
 # find cuDNN/cublas. Python 3.8+ ignores PATH for extension-module native deps —
 # os.add_dll_directory() is required. Also keep PATH for child processes/ffmpeg.
 if sys.platform == "win32":
+    # When frozen (PyInstaller onedir), the CUDA/cuDNN DLLs collected from the
+    # nvidia-*-cu12 wheels live under <_internal>/nvidia/<pkg>/bin. sys._MEIPASS
+    # points at that _internal folder. Register it (and its nvidia/*/bin dirs)
+    # so onnxruntime-gpu can dlopen the providers.
+    _search_roots = []
+    if getattr(sys, "frozen", False):
+        _meipass = getattr(sys, "_MEIPASS", os.path.dirname(sys.executable))
+        for _d in (_meipass, os.path.join(_meipass, "onnxruntime", "capi")):
+            if os.path.isdir(_d):
+                os.environ["PATH"] = _d + os.pathsep + os.environ["PATH"]
+                try:
+                    os.add_dll_directory(_d)
+                except (OSError, AttributeError):
+                    pass
+        _search_roots.append(_meipass)
     _site_packages = os.path.join(sys.prefix, "Lib", "site-packages")
     _venv_site_packages = os.path.join(project_root, "venv", "Lib", "site-packages")
-    for _sp in (_site_packages, _venv_site_packages):
+    for _sp in (*_search_roots, _site_packages, _venv_site_packages):
         _candidate_dirs = []
         _torch_lib = os.path.join(_sp, "torch", "lib")
         if os.path.isdir(_torch_lib):

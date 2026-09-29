@@ -30,11 +30,18 @@ def get_face_analyser() -> Any:
                     build_provider_config,
                 )
                 providers = build_provider_config()
-                FACE_ANALYSER = insightface.app.FaceAnalysis(
+                fa_kwargs = dict(
                     name='buffalo_l',
                     providers=providers,
-                    allowed_modules=['detection', 'recognition', 'landmark_2d_106']
+                    allowed_modules=['detection', 'recognition', 'landmark_2d_106'],
                 )
+                # When frozen, ship buffalo_l beside the exe (models/buffalo_l)
+                # instead of relying on the per-user ~/.insightface cache.
+                import sys
+                if getattr(sys, 'frozen', False):
+                    from modules.paths import INSIGHTFACE_ROOT
+                    fa_kwargs['root'] = INSIGHTFACE_ROOT
+                FACE_ANALYSER = insightface.app.FaceAnalysis(**fa_kwargs)
                 FACE_ANALYSER.prepare(ctx_id=0, det_size=DET_SIZE)
                 _optimize_det_model(FACE_ANALYSER, providers)
     return FACE_ANALYSER

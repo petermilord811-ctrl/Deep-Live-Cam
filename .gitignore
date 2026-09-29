@@ -24,6 +24,11 @@ models/GFPGANv1.4.pth
 models/DMDNet.pth
 faceswap/
 .vscode/
+
+# PyInstaller standalone build output (multi-GB, machine-specific)
+/dist/
+/build/
+*.manifest
 switch_states.json
 /models
 install.bat

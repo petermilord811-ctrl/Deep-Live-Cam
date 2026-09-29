@@ -25,9 +25,7 @@ THREAD_LOCK = threading.Lock()
 NAME = "DLC.FACE-ENHANCER"
 
 abs_dir = os.path.dirname(os.path.abspath(__file__))
-models_dir = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(abs_dir))), "models"
-)
+from modules.paths import MODELS_DIR as models_dir
 
 # Standard FFHQ 5-point face template for 512x512 resolution
 # Points: left_eye, right_eye, nose, left_mouth, right_mouth
@@ -276,13 +274,19 @@ def _postprocess_face(output: np.ndarray) -> np.ndarray:
 # GFPGAN output barely changes between consecutive frames (same face,
 # same position), so we run inference every _ENH_INTERVAL frames and
 # reuse the cached enhanced face + affine matrix in between.
+#
+# The gfpgan-1024 model costs ~100ms/inference on a mid-range GPU (RTX 3060),
+# i.e. far slower than the ~38ms face swap. Running it every frame makes the
+# live preview judder. Inference runs only every _ENH_INTERVAL frames; the
+# cached enhanced face is re-pasted on the frames in between. Higher = smoother
+# stream but the enhanced texture lags a few frames behind fast head motion.
 _enh_live_cache: dict = {
     'enhanced_bgr': None,
     'affine_matrix': None,
     'align_size': 0,
     'frame_count': 0,
 }
-_ENH_INTERVAL = 2  # run inference every N frames, paste cached result otherwise
+_ENH_INTERVAL = 3  # run inference every N frames, paste cached result otherwise
 
 
 def enhance_face(temp_frame: Frame, detected_faces=None) -> Frame:

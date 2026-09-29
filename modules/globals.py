@@ -1,9 +1,15 @@
 # --- START OF FILE globals.py ---
 
 import os
+import sys
 from typing import List, Dict, Any
 
-ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
+# When frozen (PyInstaller), modules live in the embedded archive, so anchor
+# writable/workflow data next to the executable instead of inside the bundle.
+if getattr(sys, "frozen", False):
+    ROOT_DIR = os.path.dirname(os.path.abspath(sys.executable))
+else:
+    ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 WORKFLOW_DIR = os.path.join(ROOT_DIR, "workflow")
 
 file_types = [
@@ -41,6 +47,7 @@ live_resizable: bool = True
 camera_input_combobox: Any | None = None # Placeholder for UI element if needed
 webcam_preview_running: bool = False
 show_fps: bool = False
+virtual_cam_enabled: bool = False  # Stream swapped live frames to a system virtual camera (Meet/Zoom/Teams/OBS)
 
 # System Configuration
 max_memory: int | None = None        # Memory limit in GB? (Needs clarification)

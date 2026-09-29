@@ -22,16 +22,14 @@ from modules.processors.frame._onnx_enhancer import (
 
 NAME = "DLC.FACE-ENHANCER-GPEN256"
 INPUT_SIZE = 256
-MODEL_URL = "https://github.com/harisreedhar/Face-Upscalers-ONNX/releases/download/GPEN-BFR/GPEN-BFR-256.onnx"
+MODEL_URL = "https://github.com/harisreedhar/Face-Upscalers-ONNX/releases/download/Models/GPEN-BFR-256.onnx"
 MODEL_FILE = "GPEN-BFR-256.onnx"
 
 ENHANCER = None
 THREAD_LOCK = threading.Lock()
 
 abs_dir = os.path.dirname(os.path.abspath(__file__))
-models_dir = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(abs_dir))), "models"
-)
+from modules.paths import MODELS_DIR as models_dir
 
 
 def pre_check() -> bool:
