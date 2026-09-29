@@ -30,13 +30,45 @@ By using this software, you agree to these terms and commit to using it in a man
 
 Users are expected to use this software responsibly and legally. If using a real person's face, obtain their consent and clearly label any output as a deepfake when sharing online. We are not responsible for end-user actions.
 
-## Exclusive v2.7 RC6 Quick Start - Pre-built (Windows/Mac Silicon/CPU)
+## Pre-built Deep-Live-Cam 2.7.5 Ultimate!
 
-  <a href="https://deeplivecam.net/index.php/quickstart"> <img src="media/Download.png" width="285" height="77" />
+<p align="center">
+  <a href="https://deeplivecam.net/index.php/quickstart">
+    <img src="https://github.com/user-attachments/assets/fa2cdf79-c933-4b93-844a-b087192261ed" width="100%" alt="Lite / Ultimate Download Banner">
+  </a>
+</p>
 
-##### This is the fastest build you can get if you have a discrete NVIDIA or AMD GPU, CPU or Mac Silicon, And you'll receive special priority support. 2.7 beta is the best you can have with 30+ extra features than the open source version.
- 
-###### These Pre-builts are perfect for non-technical users or those who don't have time to, or can't manually install all the requirements with all the optimizations needed. Fully optimized to any hardware you use.
+<p align="center">
+<a href="https://deeplivecam.net/index.php/plans/nvidia-gpu?plan_id=0&group_id=1">
+  <img src="https://github.com/user-attachments/assets/56b61811-3a1e-4672-9b50-cf7f6e8e6852" width="40" alt="Windows">
+</a>
+  &nbsp;&nbsp;&nbsp;
+<a href="https://deeplivecam.net/index.php/plans/nvidia-gpu?plan_id=0&group_id=2">
+  <img src="https://github.com/user-attachments/assets/6538e3a6-c957-431a-b586-2d6abcf534dc" width="34" alt="Mac Silicon">
+</a>
+  &nbsp;&nbsp;&nbsp;
+<a href="https://deeplivecam.net/index.php/plans/nvidia-gpu?plan_id=0&group_id=3">
+  <img src="https://github.com/user-attachments/assets/ad45142e-426c-4364-a2a9-a512670cc62c" width="40" alt="CPU">
+</a>
+</p>
+
+<p align="center">
+  <strong>Windows • Mac Silicon • CPU • NVIDIA • AMD</strong>
+</p>
+
+<p align="center">
+  Builds optimized for your hardware.
+</p>
+
+<p align="center">
+  <a href="https://deeplivecam.net/index.php/quickstart">
+    <img src="media/Download.png" width="280" alt="Download">
+  </a>
+</p>
+
+> **Ultimate** includes **30+ exclusive features**, performance optimizations, and **priority support** We only have a single official website which is https://deeplivecam.net . Please be careful on where you download other versions of this application aside from that website and this github repo.
+
+Perfect if you want the fastest setup with **zero manual installation**, pre-configured dependencies, and optimized builds for every supported platform.
 
 ## TLDR; Live Deepfake in just 3 Clicks
 ![easysteps](https://github.com/user-attachments/assets/af825228-852c-411b-b787-ffd9aac72fc6)
@@ -109,7 +141,7 @@ This is more likely to work on your computer but will be slower as it utilizes t
 
 **1. Set up Your Platform**
 
--   Python (3.11 recommended)
+-   Python (3.14 recommended; 3.11-3.14 supported)
 -   pip
 -   git
 -   [ffmpeg](https://www.youtube.com/watch?v=OlNWCpFdVMA) - ```iex (irm ffmpeg.tc.ht)```
@@ -118,13 +150,13 @@ This is more likely to work on your computer but will be slower as it utilizes t
 **2. Clone the Repository**
 
 ```bash
-git clone https://github.com/hacksider/Deep-Live-Cam.git
+git clone --depth 1 https://github.com/hacksider/Deep-Live-Cam.git
 cd Deep-Live-Cam
 ```
 
 **3. Download the Models**
 
-1. [GFPGANv1.4](https://huggingface.co/hacksider/deep-live-cam/resolve/main/GFPGANv1.4.onnx)
+1. [gfpgan-1024.onnx](https://huggingface.co/hacksider/deep-live-cam/resolve/main/gfpgan-1024.onnx)
 2. [inswapper\_128\_fp16.onnx](https://huggingface.co/hacksider/deep-live-cam/resolve/main/inswapper_128_fp16.onnx)
 
 Place these files in the "**models**" folder.
@@ -142,7 +174,7 @@ pip install -r requirements.txt
 ```
 For Linux:
 ```bash
-# Ensure you use the installed Python 3.11
+# Ensure you use the installed Python 3.14
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
@@ -150,17 +182,17 @@ pip install -r requirements.txt
 
 **For macOS:**
 
-Apple Silicon (M1/M2/M3) requires specific setup:
+Apple Silicon (M1 through M5) requires specific setup:
 
 ```bash
-# Install Python 3.11 (specific version is important)
-brew install python@3.11
+# Install Python 3.14
+brew install python@3.14
 
 # Install tkinter package (required for the GUI)
-brew install python-tk@3.11
+brew install python-tk@3.14
 
-# Create and activate virtual environment with Python 3.11
-python3.11 -m venv venv
+# Create and activate virtual environment with Python 3.14
+python3.14 -m venv venv
 source venv/bin/activate
 
 # Install dependencies
@@ -201,7 +233,7 @@ pip install git+https://github.com/TencentARC/GFPGAN.git@master
 ```bash
 pip install -U torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
 pip uninstall onnxruntime onnxruntime-gpu
-pip install onnxruntime-gpu==1.21.0
+pip install onnxruntime-gpu==1.26.0
 ```
 
 3. Usage:
@@ -212,26 +244,29 @@ python run.py --execution-provider cuda
 
 **CoreML Execution Provider (Apple Silicon)**
 
-Apple Silicon (M1/M2/M3) specific installation:
+Apple Silicon (M1 through M5) specific installation:
 
-1. Make sure you've completed the macOS setup above using Python 3.11.
-2. Install dependencies:
+1. Make sure you've completed the macOS setup above using Python 3.14.
+2. No extra install step is needed — `requirements.txt` pulls the official
+   `onnxruntime` build, whose macOS wheels ship the CoreML execution provider.
+   If you previously installed the unmaintained `onnxruntime-silicon` fork,
+   remove it first, as it shadows the real package:
 
 ```bash
-pip uninstall onnxruntime onnxruntime-silicon
-pip install onnxruntime-silicon==1.13.1
+pip uninstall onnxruntime-silicon
+pip install -r requirements.txt
 ```
 
 3. Usage:
 
 ```bash
-python3.11 run.py --execution-provider coreml
+python3.14 run.py --execution-provider coreml
 ```
 
 **Important Notes for macOS:**
-- You **must** use Python 3.11, not newer versions like 3.13
-- Always run with `python3.11` command not just `python` if you have multiple Python versions installed
-- If you get error about `_tkinter` missing, reinstall the tkinter package: `brew reinstall python-tk@3.11`
+- Python 3.11 is the minimum (onnxruntime dropped 3.10); 3.14 is recommended
+- Always run with `python3.14` command not just `python` if you have multiple Python versions installed
+- If you get error about `_tkinter` missing, reinstall the tkinter package: `brew reinstall python-tk@3.14`
 - If you get model loading errors, check that your models are in the correct folder
 - If you encounter conflicts with other Python versions, consider uninstalling them:
   ```bash
@@ -239,9 +274,9 @@ python3.11 run.py --execution-provider coreml
   brew list | grep python
 
   # Uninstall conflicting versions if needed
-  brew uninstall --ignore-dependencies python@3.13
+  brew uninstall --ignore-dependencies python@3.11
 
-  # Keep only Python 3.11
+  # Keep only Python 3.14
   brew cleanup
   ```
 
@@ -283,6 +318,22 @@ python run.py --execution-provider directml
 pip uninstall onnxruntime onnxruntime-openvino
 pip install onnxruntime-openvino==1.21.0
 ```
+
+**Note:** `onnxruntime-openvino` newer than 1.21.0 must be installed together with `openvino`, and the two versions must correspond one-to-one. The supported pairings are:
+
+| onnxruntime-openvino | OpenVINO |
+| --- | --- |
+| 1.24.1 | 2025.4.1 |
+| 1.23.0 | 2025.3 |
+| 1.22.0 | 2025.1 |
+
+```bash
+# Example: onnxruntime-openvino 1.24.1 pairs with OpenVINO 2025.4.1
+pip install openvino==2025.4.1
+pip install onnxruntime-openvino==1.24.1
+```
+
+See the [OpenVINO Execution Provider requirements](https://onnxruntime.ai/docs/execution-providers/OpenVINO-ExecutionProvider.html#requirements) for the full version-mapping details.
 
 2. Usage:
 
